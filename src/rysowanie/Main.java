@@ -14,19 +14,28 @@ public class Main extends JFrame
     private JPanel buttonPanel = new JPanel();
     private AnimationPanel animationPanel = new AnimationPanel();
     
+    
     public Main()
     {
         this.setTitle("Bouncing ball");
         this.setBounds(300,300,300,300);
         animationPanel.setBackground(Color.GRAY);
         this.getContentPane().add(animationPanel);
-            JButton bStrat = (JButton)buttonPanel.add(new JButton("Start Animation"));
+            JButton bStrat = (JButton)buttonPanel.add(new JButton("Start animation"));
                 bStrat.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     startAnimation();
                 }
                 });
+             JButton bStop = (JButton)buttonPanel.add(new JButton("Stop animation"));   
+                bStop.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    animationPanel.stopAnimation();
+                }
+                });
+                
         this.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
@@ -38,27 +47,18 @@ public class Main extends JFrame
     
     class AnimationPanel extends JPanel
     {
-             
+        
+        Thread theThread;
+        ThreadGroup theThreadGroup = new ThreadGroup("The Thread Group");
+        
         public void addAnimatedObject()
         {
             animatedObjectsList.add(new AnimatedObject());
-            for (int i = 0; i < 1000; i++)
-            {
-                for (int j = 0; j < animatedObjectsList.size(); j++)
-                {   
-                    ((AnimatedObject)animatedObjectsList.get(j)).moveAnimatedObject(this);
-                    this.paint(this.getGraphics());
-                    try 
-                    {
-                        Thread.sleep(1);
-                    } 
-                    catch (InterruptedException ex) {
-                        System.out.println(ex.getMessage());
-                    }
-                }    
-            }
+            theThread = new Thread(theThreadGroup, new AnimatedObjectRunnable((AnimatedObject)animatedObjectsList.get(animatedObjectsList.size()-1)));
+            theThread.start();
+            
+            theThreadGroup.list();
         }
-        
         
         @Override
         public void paintComponent(Graphics g)
@@ -72,6 +72,38 @@ public class Main extends JFrame
         }
         
         ArrayList animatedObjectsList = new ArrayList();
+        public class AnimatedObjectRunnable implements Runnable
+        {
+            public AnimatedObjectRunnable(AnimatedObject animatedObject)
+            {
+                this.animatedObject = animatedObject;
+            }
+            @Override
+            public void run() 
+            {
+                try
+                { 
+                    while (!Thread.currentThread().isInterrupted())
+                    {
+                        this.animatedObject.moveAnimatedObject(animationPanel);
+                        repaint();
+                        Thread.sleep(1);
+
+                    }
+                }
+                catch (InterruptedException ex)
+                {
+                    System.out.println(ex.getMessage());
+                }
+            }
+            AnimatedObject animatedObject;
+        }
+        
+        public void stopAnimation()
+        {
+            theThreadGroup.interrupt();
+            animatedObjectsList.clear();
+        }
     }
     
     public static void main(String[] args) {
